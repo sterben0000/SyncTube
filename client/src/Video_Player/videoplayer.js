@@ -21,25 +21,50 @@ const VideoControls = ({
     sesAyarla,
     volume
 }) => {
-
     const [isMuted, setIsMuted] = useState(false);
 
-    const durdurBaslat_butonu = () => {
+    const yetkiKontrol_videoControls=()=>{
+        return new Promise((resolve) => {
+            socket.emit("yetki_kontrolVideoControls", resolve);
+        });
+    }
+
+    const durdurBaslat_butonu = async () => {
+        const yetki = await yetkiKontrol_videoControls();
+        if(!yetki){
+            console.log("yetkin yok!");
+            return;
+        }
         socket.emit("video_baslatDurdur", oda);
         playPauseVideo();
     }
 
-    const geriSarma_butonu = () => {
+    const geriSarma_butonu = async () => {
+        const yetki = await yetkiKontrol_videoControls();
+        if(!yetki){
+            console.log("yetkin yok!");
+            return;
+        }
         socket.emit("video_geriSar", oda);
         geriSar();
     }
 
-    const ileriSarma_butonu = () => {
+    const ileriSarma_butonu = async () => {
+        const yetki = await yetkiKontrol_videoControls();
+        if(!yetki){
+            console.log("yetkin yok!");
+            return;
+        }
         socket.emit("video_ileriSar", oda);
         ileriSar();
     }
 
-    const cubuk_tiklama = (e) => {
+    const cubuk_tiklama = async (e) => {
+        const yetki = await yetkiKontrol_videoControls();
+        if(!yetki){
+            console.log("yetkin yok!");
+            return;
+        }
         ilerlemeCubugu_click(e);
     }
     
@@ -56,7 +81,12 @@ const VideoControls = ({
         sesAyarla(e);
     }
     
-    const hizDegistir = (hiz) => {
+    const hizDegistir = async (hiz) => {
+        const yetki = await yetkiKontrol_videoControls();
+        if(!yetki){
+            console.log("yetkin yok!");
+            return;
+        }
         socket.emit("videoHizi_degistir", {hiz, oda});
         videoHizi(hiz);
     }

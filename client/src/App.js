@@ -47,7 +47,7 @@ function App() {
   const [volume, setVolume] = useState(50);
   const [kullanicilarVisible, setKullanicilarVisible] = useState(false);
   const [odadakiKullanicilar, setOdadakiKullanicilar] = useState([]);
-  const [playlistYetkiIsOn, setPlaylistYetkiIsOn]=useState(true);
+
 
   const videoOynuyormuRef=useRef(videoOynuyormu);
   const fullScreenContainerRef = useRef(null);
@@ -67,7 +67,7 @@ function App() {
 
   const odaOlustur = async (kullaniciAdi)=> {
     console.log(kullaniciAdi);
-    const response = await fetch('http://192.168.1.170:3001/create-room', {
+    const response = await fetch('http://192.168.1.171:3001/create-room', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ kullaniciAdi }),
@@ -77,7 +77,7 @@ function App() {
     await response.json();
 
     
-    sockett = io("http://192.168.1.170:3001",{
+    sockett = io("http://192.168.1.171:3001",{
       withCredentials: true
     }); 
 
@@ -90,7 +90,7 @@ function App() {
   }
 
   const odaKatil = async (e,kullaniciAdi)=> {
-    const response = await fetch('http://192.168.1.170:3001/join-room', {
+    const response = await fetch('http://192.168.1.171:3001/join-room', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ e,kullaniciAdi }),
@@ -99,7 +99,7 @@ function App() {
 
     await response.json();
     
-    sockett = io("http://192.168.1.170:3001",{
+    sockett = io("http://192.168.1.171:3001",{
       withCredentials: true
     }); 
     
@@ -407,18 +407,68 @@ function App() {
         mesajGoster(data.x,data.kullanici);
       });
 
-      socket.on("kaldirYetki",async (data)=>{
-        const response = await fetch('http://192.168.1.170:3001/remove-permission',{
+      socket.on("kaldirYetkiPlaylist",async (data)=>{
+        const response = await fetch('http://192.168.1.171:3001/remove-playlist-permission',{
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ username: data.username,yetki:data.yetki }),
+          body: JSON.stringify({ username: data.username }),
           credentials: 'include'
         });
         
         var data=await response.json()
         socket.emit("yeniToken",data)
+        socket.emit("getUsersInRoom",oda,(users)=>{
+          setOdadakiKullanicilar(users);
+        });
 
       });
+      socket.on("verYetkiPlaylist",async (data)=>{
+        const response = await fetch('http://192.168.1.171:3001/give-playlist-permission',{
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ username: data.username }),
+          credentials: 'include'
+        });
+        
+        var data=await response.json()
+        socket.emit("yeniToken",data)
+        socket.emit("getUsersInRoom",oda,(users)=>{
+          setOdadakiKullanicilar(users);
+        });
+        
+
+      });
+      socket.on("kaldirYetkiVideoControls",async (data)=>{
+        const response = await fetch('http://192.168.1.171:3001/remove-videoControls-permission',{
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ username: data.username }),
+          credentials: 'include'
+        });
+        
+        var data=await response.json()
+        socket.emit("yeniToken",data)
+        socket.emit("getUsersInRoom",oda,(users)=>{
+          setOdadakiKullanicilar(users);
+        });
+
+      });
+      socket.on("verYetkiVideoControls",async (data)=>{
+        const response = await fetch('http://192.168.1.171:3001/give-videoControls-permission',{
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ username: data.username }),
+          credentials: 'include'
+        });
+        
+        var data=await response.json()
+        socket.emit("yeniToken",data)
+        socket.emit("getUsersInRoom",oda,(users)=>{
+          setOdadakiKullanicilar(users);
+        });
+
+      });
+
 
 
       // 🔚 Temizlik
@@ -463,9 +513,8 @@ function App() {
   };
 
   const videoEkle = async (link) => {
-    const yetki="playlist"
     const yetkiVarMi = await new Promise((resolve) => {
-        socket.emit("yetki_kontrol",yetki, (izinVar) => {
+        socket.emit("yetki_kontrolPlaylist",(izinVar) => {
           resolve(izinVar);
         });
       });
@@ -564,14 +613,34 @@ function App() {
     }
   }
 
-  const playlistTemizle =()=>{
+  const playlistTemizle = async () => {
+    const yetkiVarMi = await new Promise((resolve) => {
+        socket.emit("yetki_kontrolPlaylist",(izinVar) => {
+          resolve(izinVar);
+        });
+      });
+      console.log("yetki: "+yetkiVarMi);
+      if(!yetkiVarMi){
+        console.log("yetkin yok!");
+        return;
+      }
     setPlaylist([]);
     setKapakFotografi([]);
     setTitle([]);
     socket.emit("playlistTemizle",oda);
   }
 
-  const kaldir =(x)=>{
+  const kaldir =async (x) => {
+    const yetkiVarMi = await new Promise((resolve) => {
+        socket.emit("yetki_kontrolPlaylist",(izinVar) => {
+          resolve(izinVar);
+        });
+      });
+      console.log("yetki: "+yetkiVarMi);
+      if(!yetkiVarMi){
+        console.log("yetkin yok!");
+        return;
+      }
     const yeniPlaylist=[...playlist];
     const basliklar = [...title];
     const kapaklar=[...kapakFotografi];
@@ -671,11 +740,10 @@ function App() {
   }
 
   const odadanAyril = async ()=>{
-    const response = await fetch('http://192.168.1.170:3001/odadan-cik', {
+    const response = await fetch('http://192.168.1.171:3001/odadan-cik', {
       method: 'POST',
       credentials: 'include'
     })
-
     await response.json();
 
     document.cookie = "username=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
@@ -692,14 +760,13 @@ function App() {
     if (!kullanicilarVisible) {
       socket.emit("getUsersInRoom",oda,(users)=>{
         setOdadakiKullanicilar(users);
-        console.log(users);
       });
     }
   }
   const playlistYetkiToggle = async (data)=>{
-    const arananYetki="owner"
+    
     const yetkiVarMi = await new Promise((resolve) => {
-      socket.emit("yetki_kontrol",arananYetki, (izinVar) => {
+      socket.emit("yetki_kontrolOwner",(izinVar) => {
         resolve(izinVar);
       });
     });
@@ -708,17 +775,45 @@ function App() {
       console.log("yetkin yok!");
       return;
     }
-    if(!playlistYetkiIsOn){
+    const user=odadakiKullanicilar[data.index];
+    if(!user.yetkiPlaylist){
+      const username=data.username;
+      const id=data.id;
+      socket.emit("yetki_verPlaylist",{username,id});
       
     }
     else{
-      console.log("aaaa"+data.username);
+      
       const username=data.username;
       const id=data.id;
-      const yetki=data.yetki
-      socket.emit("yetki_kaldir",{username,id,yetki});
+      socket.emit("yetki_kaldirPlaylist",{username,id});
     }
-    setPlaylistYetkiIsOn(!playlistYetkiIsOn);
+  }
+  const videoControlsYetkiToggle = async (data)=>{
+    const yetkiVarMi = await new Promise((resolve) => {
+      socket.emit("yetki_kontrolOwner",(izinVar) => {
+        resolve(izinVar);
+      });
+    });
+    console.log("yetki: "+yetkiVarMi);
+    if(!yetkiVarMi){
+      console.log("yetkin yok!");
+      return;
+    }
+    const user=odadakiKullanicilar[data.index];
+    if(!user.yetkiVideoControls){
+      const username=data.username;
+      const id=data.id;
+      socket.emit("yetki_verVideoControls",{username,id});
+      
+    }
+    else{
+      const username=data.username;
+      const id=data.id;
+      socket.emit("yetki_kaldirVideoControls",{username,id});
+    }
+    
+    
   }
   
 return (
@@ -816,7 +911,11 @@ return (
                           <div key={index} className="kullanici-item">
                             <span className="kullanici-adi">{kullanici.username}</span>
                             <label class="switch">
-                              <input type="checkbox" checked={playlistYetkiIsOn} onChange={()=>playlistYetkiToggle({ username: kullanici.username, id: kullanici.id, yetki: "playlist" })}/>
+                              <input type="checkbox" checked={kullanici.yetkiPlaylist} onChange={()=>playlistYetkiToggle({ username: kullanici.username, id: kullanici.id,index })}/>
+                              <span class="slider round"></span>
+                            </label>
+                            <label class="switch">
+                              <input type="checkbox" checked={kullanici.yetkiVideoControls} onChange={()=>videoControlsYetkiToggle({ username: kullanici.username, id: kullanici.id,index })}/>
                               <span class="slider round"></span>
                             </label>
                           </div>

@@ -10,7 +10,7 @@ const cookieParser = require('cookie-parser');
 
 const PORT=3000
 app.use(cors({
-  origin: 'http://192.168.1.170:3000',
+  origin: 'http://192.168.1.171:3000',
   credentials: true
 }));
 app.use(express.json());
@@ -58,16 +58,85 @@ app.post('/join-room',(req,res)=>{
 
 })
 
-app.post('/remove-permission',(req,res)=>{
-    const { username,yetki } = req.body;
+app.post('/remove-playlist-permission',(req,res)=>{
+    const { username} = req.body;
     const eskiToken=req.cookies.token;
     const decoded=jwt.verify(eskiToken, SECRET_KEY);
     const yetkiler = decoded.permissions || [];
-    const yeniYetkiler=yetkiler.filter(item => item !== yetki);
+    const yeniYetkiler=yetkiler.filter(item => item !== "playlist");
 
     payload = {
         "username" : username,
         "permissions" : yeniYetkiler
+    }
+    const token = jwt.sign(payload, SECRET_KEY, { expiresIn: '12h' });
+
+    res.cookie('token', token, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'strict',
+        maxAge: 3600000,
+    });
+
+    res.json(token);
+
+})
+app.post('/give-playlist-permission',(req,res)=>{
+    const { username} = req.body;
+    const eskiToken=req.cookies.token;
+    const decoded=jwt.verify(eskiToken, SECRET_KEY);
+    const yetkiler = decoded.permissions || [];
+    yetkiler.push("playlist")
+
+    payload = {
+        "username" : username,
+        "permissions" : yetkiler
+    }
+    const token = jwt.sign(payload, SECRET_KEY, { expiresIn: '12h' });
+
+    res.cookie('token', token, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'strict',
+        maxAge: 3600000,
+    });
+
+    res.json(token);
+
+})
+app.post('/remove-videoControls-permission',(req,res)=>{
+    const { username} = req.body;
+    const eskiToken=req.cookies.token;
+    const decoded=jwt.verify(eskiToken, SECRET_KEY);
+    const yetkiler = decoded.permissions || [];
+    const yeniYetkiler=yetkiler.filter(item => item !== "videoControls");
+
+    payload = {
+        "username" : username,
+        "permissions" : yeniYetkiler
+    }
+    const token = jwt.sign(payload, SECRET_KEY, { expiresIn: '12h' });
+
+    res.cookie('token', token, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'strict',
+        maxAge: 3600000,
+    });
+
+    res.json(token);
+
+})
+app.post('/give-videoControls-permission',(req,res)=>{
+    const { username} = req.body;
+    const eskiToken=req.cookies.token;
+    const decoded=jwt.verify(eskiToken, SECRET_KEY);
+    const yetkiler = decoded.permissions || [];
+    yetkiler.push("videoControls")
+
+    payload = {
+        "username" : username,
+        "permissions" : yetkiler
     }
     const token = jwt.sign(payload, SECRET_KEY, { expiresIn: '12h' });
 
@@ -97,35 +166,12 @@ app.listen(PORT, () => {
 
 const io = new Server(server, {
     cors: {
-        origin: "http://192.168.1.170:3000",
+        origin: "http://192.168.1.171:3000",
         credentials: true
         
     }
 })
-function yetkiKaldir(tok,silinecekYetki,username){
-    const decoded = jwt.verify(tok, SECRET_KEY);
-    const yetkiler = decoded.permissions || [];
-    const yeniYetkiler=yetkiler.filter(item => item !== silinecekYetki);
 
-    payload = {
-        "username" : username,
-        "permissions" : yeniYetkiler,
-     }
-    return jwt.sign(payload, SECRET_KEY, { expiresIn: '12h' });
-
-} 
-function yetkiKaldir(tok,verilecekYetki,username){
-    const decoded = jwt.verify(tok, SECRET_KEY);
-    const yetkiler = decoded.permissions || [];
-    yetkiler.push(verilecekYetki);
-
-    payload = {
-        "username" : username,
-        "permissions" : yeniYetkiler,
-     }
-    return jwt.sign(payload, SECRET_KEY, { expiresIn: '12h' });
-
-} 
 
 io.use((socket, next) => {
   const cookies = socket.handshake.headers.cookie;
@@ -161,9 +207,12 @@ io.on("connection",(socket)=>{
                 const s = io.sockets.sockets.get(id);
                 users.push({
                     id: id,
+                    yetkiVideoControls:s.yetkiVideoControls,
+                    yetkiPlaylist:s.yetkiPlaylist,
                     username: s?.username || "(isimsiz)",
                 });
             });
+            console.log(users);
             cb(users);
         }).catch((err) => {
         console.error("Hata:", err);
@@ -180,6 +229,8 @@ io.on("connection",(socket)=>{
 
         socket.username = data.kullaniciAdi;
         username=data.kullaniciAdi;  
+        socket.yetkiVideoControls=true;
+        socket.yetkiPlaylist=true;
         socket.join(data.odaid);
         oda=data.odaid;
         socket.currentRoom = oda;
@@ -195,6 +246,8 @@ io.on("connection",(socket)=>{
         }
         
         socket.username = data.kullaniciAdi;  
+        socket.yetkiVideoControls=true;
+        socket.yetkiPlaylist=true;
         username=data.kullaniciAdi;
         socket.join(data.e);
         socket.currentRoom = data.e;
@@ -264,11 +317,33 @@ io.on("connection",(socket)=>{
         socket.to(data.oda).emit("mesaj_al",{x: data.x,kullanici: data.kullanici});
     })
 
-    socket.on("yetki_kontrol",(data,cb)=>{
+    socket.on("yetki_kontrolOwner",(cb)=>{
         const token = socket.token;
         const decoded = jwt.verify(token, SECRET_KEY);
         const yetkiler = decoded.permissions || [];
-        if(yetkiler.includes(data)|| yetkiler.includes("owner")){
+        if(yetkiler.includes("owner")){
+            cb(true);
+        }
+        else{
+            cb(false);
+        }
+    })
+    socket.on("yetki_kontrolPlaylist",(cb)=>{
+        const token = socket.token;
+        const decoded = jwt.verify(token, SECRET_KEY);
+        const yetkiler = decoded.permissions || [];
+        if(yetkiler.includes("playlist")||yetkiler.includes("owner")){
+            cb(true);
+        }
+        else{
+            cb(false);
+        }
+    })
+    socket.on("yetki_kontrolVideoControls",(cb)=>{
+        const token = socket.token;
+        const decoded = jwt.verify(token, SECRET_KEY);
+        const yetkiler = decoded.permissions || [];
+        if(yetkiler.includes("videoControls")||yetkiler.includes("owner")){
             cb(true);
         }
         else{
@@ -276,12 +351,41 @@ io.on("connection",(socket)=>{
         }
     })
 
-    socket.on("yetki_kaldir",(data)=>{
+    socket.on("yetki_kaldirPlaylist",(data)=>{
         const hedef=data.id;
         console.log("hedef: "+hedef)
-        socket.to(hedef).emit("kaldirYetki",data);
+        socket.to(hedef).emit("kaldirYetkiPlaylist",data);
+    })
+    socket.on("yetki_verPlaylist",(data)=>{
+        const hedef=data.id;
+        console.log("hedef: "+hedef)
+        socket.to(hedef).emit("verYetkiPlaylist",data);
+    })
+    socket.on("yetki_kaldirVideoControls",(data)=>{
+        const hedef=data.id;
+        console.log("hedef: "+hedef)
+        socket.to(hedef).emit("kaldirYetkiVideoControls",data);
+    })
+    socket.on("yetki_verVideoControls",(data)=>{
+        const hedef=data.id;
+        console.log("hedef: "+hedef)
+        socket.to(hedef).emit("verYetkiVideoControls",data);
     })
     socket.on("yeniToken",data=>{
+        const decoded =  jwt.verify(data, SECRET_KEY);
+        const yetkiler= decoded.permissions;
+        if(yetkiler.includes("videoControls")){
+            socket.yetkiVideoControls=true;
+        
+        }else{
+            socket.yetkiVideoControls=false;
+        }
+        if(yetkiler.includes("playlist")){
+            socket.yetkiPlaylist=true;
+        
+        }else{
+            socket.yetkiPlaylist=false;
+        }
         socket.token=data;
         console.log(socket.token);
     })
