@@ -59,12 +59,7 @@ const VideoControls = ({
         ileriSar();
     }
 
-    const cubuk_tiklama = async (e) => {
-        const yetki = await yetkiKontrol_videoControls();
-        if(!yetki){
-            console.log("yetkin yok!");
-            return;
-        }
+    const cubuk_tiklama =  (e) => {
         ilerlemeCubugu_click(e);
     }
     

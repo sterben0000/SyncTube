@@ -38,6 +38,7 @@ function HomePage({ oda, setOda, kullaniciAdi, setKullaniciAdi,odaOlustur,odaKat
           placeholder="Oda adı..."
         />
         <button onClick={() => odaKatil(oda,kullaniciAdi)}>Odaya Katıl</button>
+        
     </div>
   );
 }

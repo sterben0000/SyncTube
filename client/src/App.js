@@ -67,7 +67,7 @@ function App() {
 
   const odaOlustur = async (kullaniciAdi)=> {
     console.log(kullaniciAdi);
-    const response = await fetch('http://192.168.1.171:3001/create-room', {
+    const response = await fetch('http://192.168.137.86:3001/create-room', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ kullaniciAdi }),
@@ -77,7 +77,7 @@ function App() {
     await response.json();
 
     
-    sockett = io("http://192.168.1.171:3001",{
+    sockett = io("http://192.168.137.86:3001",{
       withCredentials: true
     }); 
 
@@ -90,7 +90,7 @@ function App() {
   }
 
   const odaKatil = async (e,kullaniciAdi)=> {
-    const response = await fetch('http://192.168.1.171:3001/join-room', {
+    const response = await fetch('http://192.168.137.86:3001/join-room', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ e,kullaniciAdi }),
@@ -99,7 +99,7 @@ function App() {
 
     await response.json();
     
-    sockett = io("http://192.168.1.171:3001",{
+    sockett = io("http://192.168.137.86:3001",{
       withCredentials: true
     }); 
     
@@ -408,7 +408,7 @@ function App() {
       });
 
       socket.on("kaldirYetkiPlaylist",async (data)=>{
-        const response = await fetch('http://192.168.1.171:3001/remove-playlist-permission',{
+        const response = await fetch('http://192.168.137.86:3001/remove-playlist-permission',{
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ username: data.username }),
@@ -423,7 +423,7 @@ function App() {
 
       });
       socket.on("verYetkiPlaylist",async (data)=>{
-        const response = await fetch('http://192.168.1.171:3001/give-playlist-permission',{
+        const response = await fetch('http://192.168.137.86:3001/give-playlist-permission',{
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ username: data.username }),
@@ -439,7 +439,7 @@ function App() {
 
       });
       socket.on("kaldirYetkiVideoControls",async (data)=>{
-        const response = await fetch('http://192.168.1.171:3001/remove-videoControls-permission',{
+        const response = await fetch('http://192.168.137.86:3001/remove-videoControls-permission',{
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ username: data.username }),
@@ -454,7 +454,7 @@ function App() {
 
       });
       socket.on("verYetkiVideoControls",async (data)=>{
-        const response = await fetch('http://192.168.1.171:3001/give-videoControls-permission',{
+        const response = await fetch('http://192.168.137.86:3001/give-videoControls-permission',{
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ username: data.username }),
@@ -655,8 +655,19 @@ function App() {
   }
   
 
-  const ilerlemeCubugu_click = (e) => {
+  const ilerlemeCubugu_click = async (e) => {
     const ilerlemeCubugu_Alani = e.currentTarget;
+    const yetkiVarMi = await new Promise((resolve) => {
+      socket.emit("yetki_kontrolVideoControls",(izinVar) => {
+        resolve(izinVar);
+      });
+    });
+    console.log("yetki: "+yetkiVarMi);
+    if(!yetkiVarMi){
+      console.log("yetkin yok!");
+      return;
+    }
+    
     const rect = ilerlemeCubugu_Alani.getBoundingClientRect();
     const clickLocation = e.clientX - rect.left;
     const width = rect.width;
@@ -740,7 +751,7 @@ function App() {
   }
 
   const odadanAyril = async ()=>{
-    const response = await fetch('http://192.168.1.171:3001/odadan-cik', {
+    const response = await fetch('http://192.168.137.86:3001/odadan-cik', {
       method: 'POST',
       credentials: 'include'
     })
@@ -752,7 +763,10 @@ function App() {
     setOda("");
     setKullaniciAdi("");
     navigate("/");
+    setOdadakiKullanicilar([]);
+    setPlaylist([]);
     setSocket(null);
+
   }
 
   const kullanicilarGoster = () => {
@@ -777,12 +791,22 @@ function App() {
     }
     const user=odadakiKullanicilar[data.index];
     if(!user.yetkiPlaylist){
+      setOdadakiKullanicilar((prevUsers) => {
+        const updatedUsers = [...prevUsers];
+        updatedUsers[data.index].yetkiPlaylist = true;
+        return updatedUsers;
+      });
       const username=data.username;
       const id=data.id;
       socket.emit("yetki_verPlaylist",{username,id});
       
     }
     else{
+      setOdadakiKullanicilar((prevUsers) => {
+        const updatedUsers = [...prevUsers];
+        updatedUsers[data.index].yetkiPlaylist = false;
+        return updatedUsers;
+      });
       
       const username=data.username;
       const id=data.id;
@@ -802,12 +826,23 @@ function App() {
     }
     const user=odadakiKullanicilar[data.index];
     if(!user.yetkiVideoControls){
+      setOdadakiKullanicilar((prevUsers) => {
+        const updatedUsers = [...prevUsers];
+        updatedUsers[data.index].yetkiVideoControls =true;
+        return updatedUsers;
+      });
+      
       const username=data.username;
       const id=data.id;
       socket.emit("yetki_verVideoControls",{username,id});
       
     }
     else{
+      setOdadakiKullanicilar((prevUsers) => {
+        const updatedUsers = [...prevUsers];
+        updatedUsers[data.index].yetkiVideoControls =false;
+        return updatedUsers;
+      });
       const username=data.username;
       const id=data.id;
       socket.emit("yetki_kaldirVideoControls",{username,id});
@@ -894,30 +929,53 @@ return (
                     {oda} 
                     <div className="oda-controls">
                       <button onClick={kullanicilarGoster}>
-                        👥 ({odadakiKullanicilar.length})
+                        {kullanicilarVisible ? '💬' : '👥'}
                       </button>
                       <button onClick={odadanAyril}>Odadan Ayrıl</button>
                     </div>
                   </div>
                   
-                  {kullanicilarVisible && (
-                    <div className="kullanicilar-paneli">
+                  {kullanicilarVisible ? (
+                    <div className="kullanicilar-paneli-content">
                       <div className="kullanicilar-basligi">
                         <span>Odadaki Kullanıcılar</span>
-                        <button onClick={() => setKullanicilarVisible(false)}>×</button>
                       </div>
                       <div className="kullanicilar-listesi">
                         {odadakiKullanicilar.map((kullanici, index) => (
                           <div key={index} className="kullanici-item">
                             <span className="kullanici-adi">{kullanici.username}</span>
-                            <label class="switch">
-                              <input type="checkbox" checked={kullanici.yetkiPlaylist} onChange={()=>playlistYetkiToggle({ username: kullanici.username, id: kullanici.id,index })}/>
-                              <span class="slider round"></span>
-                            </label>
-                            <label class="switch">
-                              <input type="checkbox" checked={kullanici.yetkiVideoControls} onChange={()=>videoControlsYetkiToggle({ username: kullanici.username, id: kullanici.id,index })}/>
-                              <span class="slider round"></span>
-                            </label>
+                            <div className="kullanici-controls">
+                              <div className="yetki-label">
+                                <span className="yetki-text">Playlist</span>
+                                <label className="switch">
+                                  <input 
+                                    type="checkbox" 
+                                    checked={kullanici.yetkiPlaylist} 
+                                    onChange={() => playlistYetkiToggle({ 
+                                      username: kullanici.username, 
+                                      id: kullanici.id, 
+                                      index 
+                                    })}
+                                  />
+                                  <span className="slider round"></span>
+                                </label>
+                              </div>
+                              <div className="yetki-label">
+                                <span className="yetki-text">Video</span>
+                                <label className="switch">
+                                  <input 
+                                    type="checkbox" 
+                                    checked={kullanici.yetkiVideoControls} 
+                                    onChange={() => videoControlsYetkiToggle({ 
+                                      username: kullanici.username, 
+                                      id: kullanici.id, 
+                                      index 
+                                    })}
+                                  />
+                                  <span className="slider round"></span>
+                                </label>
+                              </div>
+                            </div>
                           </div>
                         ))}
                         {odadakiKullanicilar.length === 0 && (
@@ -925,18 +983,21 @@ return (
                         )}
                       </div>
                     </div>
+                  ) : (
+                    <>
+                      <div className="mesaj-listesi" ref={messageContainerRef}></div>
+                      <div className="gonder-paneli">
+                        <input
+                          type="text"
+                          value={mesaj}
+                          onChange={(e) => setMesaj(e.target.value)}
+                          onKeyDown={(e) => e.key === "Enter" && mesajGonder(mesaj)}
+                          placeholder="Mesaj veya URL gir..."
+                        />
+                        <button onClick={() => mesajGonder(mesaj)}>Gönder</button>
+                      </div>
+                    </>
                   )}
-                  <div className="mesaj-listesi" ref={messageContainerRef}></div>
-                  <div className="gonder-paneli">
-                    <input
-                      type="text"
-                      value={mesaj}
-                      onChange={(e) => setMesaj(e.target.value)}
-                      onKeyDown={(e) => e.key === "Enter" && mesajGonder(mesaj)}
-                      placeholder="Mesaj veya URL gir..."
-                    />
-                    <button onClick={() => mesajGonder(mesaj)}>Gönder</button>
-                  </div>
                 </div>
               </div>
             </div>

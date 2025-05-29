@@ -10,7 +10,7 @@ const cookieParser = require('cookie-parser');
 
 const PORT=3000
 app.use(cors({
-  origin: 'http://192.168.1.171:3000',
+  origin: 'http://192.168.137.86:3000',
   credentials: true
 }));
 app.use(express.json());
@@ -166,7 +166,7 @@ app.listen(PORT, () => {
 
 const io = new Server(server, {
     cors: {
-        origin: "http://192.168.1.171:3000",
+        origin: "http://192.168.137.86:3000",
         credentials: true
         
     }
@@ -199,6 +199,7 @@ io.on("connection",(socket)=>{
     socket.on("getRooms", () => {
         const rooms = Array.from(io.sockets.adapter.rooms);
         const filtered = rooms.filter(([name, members]) => !io.sockets.sockets.get(name));
+        console.log(rooms);
     });
     socket.on("getUsersInRoom", (roomName,cb) => {
         io.in(roomName).allSockets().then((socketIds) => {

@@ -435,7 +435,7 @@ button:hover {
   background-color: #1565c0;
 }
 
-/* Chat styling */
+/* Chat styling - Updated to handle visibility toggle */
 .chat-container {
   background-color: #121212;
   border-radius: 8px;
@@ -446,6 +446,11 @@ button:hover {
   height: 66.67%; /* Bottom 2/3 of right panel */
   flex-grow: 1;
   position: relative;
+}
+
+/* Hide chat when users panel is visible */
+.chat-container.hidden {
+  display: none;
 }
 
 .oda-basligi {
@@ -483,29 +488,34 @@ button:hover {
   background-color: #1565c0;
 }
 
+/* Updated user panel - now replaces chat instead of being positioned absolute */
 .kullanicilar-paneli {
-  position: absolute;
-  top: 50px;
-  right: 15px;
-  width: 250px;
-  background-color: #1a1a1a;
-  border: 1px solid #333;
+  background-color: #121212;
   border-radius: 8px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
-  z-index: 100;
-  max-height: 300px;
+  padding: 0;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+  display: flex;
+  flex-direction: column;
+  height: 66.67%; /* Same height as chat container */
+  flex-grow: 1;
   overflow: hidden;
+}
+
+/* Hide users panel by default */
+.kullanicilar-paneli.hidden {
+  display: none;
 }
 
 .kullanicilar-basligi {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 12px 15px;
+  padding: 15px;
   background-color: #0d47a1;
   color: white;
   font-weight: 600;
-  font-size: 14px;
+  font-size: 16px;
+  border-radius: 8px 8px 0 0;
 }
 
 .kullanicilar-basligi button {
@@ -515,8 +525,8 @@ button:hover {
   font-size: 18px;
   cursor: pointer;
   padding: 0;
-  width: 20px;
-  height: 20px;
+  width: 24px;
+  height: 24px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -530,15 +540,19 @@ button:hover {
 }
 
 .kullanicilar-listesi {
-  max-height: 200px;
+  flex: 1;
   overflow-y: auto;
-  padding: 8px 0;
+  padding: 0;
 }
 
 .kullanici-item {
-  padding: 10px 15px;
+  padding: 15px;
   border-bottom: 1px solid #333;
   transition: background-color 0.2s;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 15px;
 }
 
 .kullanici-item:hover {
@@ -551,16 +565,36 @@ button:hover {
 
 .kullanici-adi {
   color: #e0e0e0;
-  font-size: 13px;
+  font-size: 14px;
+  font-weight: 500;
+  flex: 1;
+}
+
+.kullanici-controls {
+  display: flex;
+  gap: 15px;
+  align-items: center;
+}
+
+.yetki-label {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 5px;
+}
+
+.yetki-text {
+  font-size: 11px;
+  color: #90caf9;
   font-weight: 500;
 }
 
 .bos-kullanici {
-  padding: 20px 15px;
+  padding: 40px 15px;
   text-align: center;
   color: #888;
   font-style: italic;
-  font-size: 13px;
+  font-size: 14px;
 }
 
 .mesaj-listesi {
@@ -641,66 +675,57 @@ button:hover {
     height: 300px;
   }
   
-  .chat-container {
+  .chat-container, .kullanicilar-paneli {
     height: 400px;
   }
 }
-  .switch {
-    position: relative;
-    display: inline-block;
-    width: 60px;
-    height: 34px;
-  }
-  
-  .switch input { 
-    opacity: 0;
-    width: 0;
-    height: 0;
-  }
-  
-  .slider {
-    position: absolute;
-    cursor: pointer;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background-color: #ccc;
-    -webkit-transition: .4s;
-    transition: .4s;
-  }
-  
-  .slider:before {
-    position: absolute;
-    content: "";
-    height: 26px;
-    width: 26px;
-    left: 4px;
-    bottom: 4px;
-    background-color: white;
-    -webkit-transition: .4s;
-    transition: .4s;
-  }
-  
-  input:checked + .slider {
-    background-color: #2196F3;
-  }
-  
-  input:focus + .slider {
-    box-shadow: 0 0 1px #2196F3;
-  }
-  
-  input:checked + .slider:before {
-    -webkit-transform: translateX(26px);
-    -ms-transform: translateX(26px);
-    transform: translateX(26px);
-  }
-  
-  /* Rounded sliders */
-  .slider.round {
-    border-radius: 34px;
-  }
-  
-  .slider.round:before {
-    border-radius: 50%;
-  }
+
+/* Switch styles */
+.switch {
+  position: relative;
+  display: inline-block;
+  width: 50px;
+  height: 24px;
+}
+
+.switch input { 
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.slider {
+  position: absolute;
+  cursor: pointer;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: #333;
+  transition: .4s;
+  border-radius: 24px;
+}
+
+.slider:before {
+  position: absolute;
+  content: "";
+  height: 18px;
+  width: 18px;
+  left: 3px;
+  bottom: 3px;
+  background-color: white;
+  transition: .4s;
+  border-radius: 50%;
+}
+
+input:checked + .slider {
+  background-color: #0d47a1;
+}
+
+input:focus + .slider {
+  box-shadow: 0 0 1px #0d47a1;
+}
+
+input:checked + .slider:before {
+  transform: translateX(26px);
+}
