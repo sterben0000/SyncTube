@@ -5,7 +5,8 @@ import HomePage from "./Ana_Sayfa/homepage";
 import { Routes, Route, useLocation, useNavigate } from "react-router-dom";
 import io from 'socket.io-client';
 
-const YOUTUBE_API_KEY = "AIzaSyByXprBkHmeALFIL66BSAt7LQwt_TN9NIc";
+
+const YOUTUBE_API_KEY = process.env.REACT_APP_YOUTUBE_API_KEY;
 let sockett;
 
 function setCookie(cname, cvalue, exdays) {
@@ -67,7 +68,7 @@ function App() {
 
   const odaOlustur = async (kullaniciAdi)=> {
     console.log(kullaniciAdi);
-    const response = await fetch('http://192.168.137.86:3001/create-room', {
+    const response = await fetch('http://192.168.1.171:3001/create-room', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ kullaniciAdi }),
@@ -77,7 +78,7 @@ function App() {
     await response.json();
 
     
-    sockett = io("http://192.168.137.86:3001",{
+    sockett = io("http://192.168.1.171:3001",{
       withCredentials: true
     }); 
 
@@ -90,7 +91,7 @@ function App() {
   }
 
   const odaKatil = async (e,kullaniciAdi)=> {
-    const response = await fetch('http://192.168.137.86:3001/join-room', {
+    const response = await fetch('http://192.168.1.171:3001/join-room', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ e,kullaniciAdi }),
@@ -99,7 +100,7 @@ function App() {
 
     await response.json();
     
-    sockett = io("http://192.168.137.86:3001",{
+    sockett = io("http://192.168.1.171:3001",{
       withCredentials: true
     }); 
     
@@ -107,6 +108,7 @@ function App() {
 
     setSocket(sockett);
   }
+
 
   const urlMi = (str) => {
     const pattern = new RegExp(
@@ -408,7 +410,7 @@ function App() {
       });
 
       socket.on("kaldirYetkiPlaylist",async (data)=>{
-        const response = await fetch('http://192.168.137.86:3001/remove-playlist-permission',{
+        const response = await fetch('http://192.168.1.171:3001/remove-playlist-permission',{
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ username: data.username }),
@@ -423,7 +425,7 @@ function App() {
 
       });
       socket.on("verYetkiPlaylist",async (data)=>{
-        const response = await fetch('http://192.168.137.86:3001/give-playlist-permission',{
+        const response = await fetch('http://192.168.1.171:3001/give-playlist-permission',{
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ username: data.username }),
@@ -439,7 +441,7 @@ function App() {
 
       });
       socket.on("kaldirYetkiVideoControls",async (data)=>{
-        const response = await fetch('http://192.168.137.86:3001/remove-videoControls-permission',{
+        const response = await fetch('http://192.168.1.171:3001/remove-videoControls-permission',{
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ username: data.username }),
@@ -454,7 +456,7 @@ function App() {
 
       });
       socket.on("verYetkiVideoControls",async (data)=>{
-        const response = await fetch('http://192.168.137.86:3001/give-videoControls-permission',{
+        const response = await fetch('http://192.168.1.171:3001/give-videoControls-permission',{
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ username: data.username }),
@@ -751,7 +753,7 @@ function App() {
   }
 
   const odadanAyril = async ()=>{
-    const response = await fetch('http://192.168.137.86:3001/odadan-cik', {
+    const response = await fetch('http://192.168.1.171:3001/odadan-cik', {
       method: 'POST',
       credentials: 'include'
     })
@@ -762,10 +764,10 @@ function App() {
     socket.disconnect();
     setOda("");
     setKullaniciAdi("");
-    navigate("/");
     setOdadakiKullanicilar([]);
     setPlaylist([]);
     setSocket(null);
+    window.location.href = "/";
 
   }
 
@@ -864,6 +866,7 @@ return (
             socket={socket}
             odaOlustur={odaOlustur}
             odaKatil={odaKatil}
+           
           />
         }
       />

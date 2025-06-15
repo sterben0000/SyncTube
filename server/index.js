@@ -10,8 +10,8 @@ const cookieParser = require('cookie-parser');
 
 const PORT=3000
 app.use(cors({
-  origin: 'http://192.168.137.86:3000',
-  credentials: true
+    origin: 'http://192.168.1.171:3000',
+    credentials: true
 }));
 app.use(express.json());
 app.use(cookieParser());
@@ -19,14 +19,22 @@ app.use(cookieParser());
 const SECRET_KEY = process.env.SECRET_KEY;
 const server = http.createServer(app);
 
+const io = new Server(server, {
+    cors: {
+        origin: "http://192.168.1.171:3000",
+        credentials: true
+        
+    }
+})
+
 app.post('/create-room',(req,res)=>{
     const { kullaniciAdi } = req.body;
     payload = {
-            "username" : kullaniciAdi,
-            "permissions" : ["owner"]
-        }
+        "username" : kullaniciAdi,
+        "permissions" : ["owner"]
+    }
     const token = jwt.sign(payload, SECRET_KEY, { expiresIn: '12h' });
-
+    
     res.cookie('token', token, {
         httpOnly: true,
         secure: process.env.NODE_ENV === 'production',
@@ -160,17 +168,21 @@ app.post('/odadan-cik',(req,res)=>{
     });
     res.json({ message: 'Token cookie olarak set edildi' });
 })
+
+app.post('/oda-cek',(req,res)=>{
+    const rooms = Array.from(io.sockets.adapter.rooms);
+    const filtered = rooms.filter(([name, members]) => !io.sockets.sockets.get(name));
+    console.log(filtered);
+
+    
+    res.json({rooms: filtered})
+    
+
+})
+
 app.listen(PORT, () => {
   console.log(`Sunucu ${PORT} portunda çalışıyor`);
 });
-
-const io = new Server(server, {
-    cors: {
-        origin: "http://192.168.137.86:3000",
-        credentials: true
-        
-    }
-})
 
 
 io.use((socket, next) => {
