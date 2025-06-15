@@ -142,7 +142,11 @@ function App() {
       const params = new URLSearchParams(location.search);
       const urlOda = params.get("oda");
       if (urlOda) {
+        if(socket==null){
+          odaKatil(getCookie("oda"),getCookie("username"));
+        }
         setOda(urlOda);
+        setCookie("oda",urlOda,1);
       }
     }
   }, [location]);
@@ -249,8 +253,8 @@ function App() {
             },
             events: {
               onReady: ()=>{
-                socket.emit("odaya_katildi",{kullanici:getCookie("username"),socketId: socket.id,oda},()=>{
-                  socket.emit("url_cek",{oda,socketId: socket.id});
+                socket.emit("odaya_katildi",{kullanici:getCookie("username"),socketId: socket.id,oda :getCookie("oda")},()=>{
+                  socket.emit("url_cek",{oda :getCookie("oda"),socketId: socket.id});
                 });
               },
               onStateChange: (event) => {
@@ -419,7 +423,7 @@ function App() {
         
         var data=await response.json()
         socket.emit("yeniToken",data)
-        socket.emit("getUsersInRoom",oda,(users)=>{
+        socket.emit("getUsersInRoom",{oda :getCookie("oda")},(users)=>{
           setOdadakiKullanicilar(users);
         });
 
@@ -434,7 +438,7 @@ function App() {
         
         var data=await response.json()
         socket.emit("yeniToken",data)
-        socket.emit("getUsersInRoom",oda,(users)=>{
+        socket.emit("getUsersInRoom",{oda :getCookie("oda")},(users)=>{
           setOdadakiKullanicilar(users);
         });
         
@@ -450,7 +454,7 @@ function App() {
         
         var data=await response.json()
         socket.emit("yeniToken",data)
-        socket.emit("getUsersInRoom",oda,(users)=>{
+        socket.emit("getUsersInRoom",{oda :getCookie("oda")},(users)=>{
           setOdadakiKullanicilar(users);
         });
 
@@ -465,7 +469,7 @@ function App() {
         
         var data=await response.json()
         socket.emit("yeniToken",data)
-        socket.emit("getUsersInRoom",oda,(users)=>{
+        socket.emit("getUsersInRoom",{oda :getCookie("oda")},(users)=>{
           setOdadakiKullanicilar(users);
         });
 
@@ -629,7 +633,7 @@ function App() {
     setPlaylist([]);
     setKapakFotografi([]);
     setTitle([]);
-    socket.emit("playlistTemizle",oda);
+    socket.emit("playlistTemizle",{oda :getCookie("oda")});
   }
 
   const kaldir =async (x) => {
@@ -649,7 +653,7 @@ function App() {
     yeniPlaylist.splice(x,1);
     basliklar.splice(x,1)
     kapaklar.splice(x,1)
-    socket.emit("playlistten_Kaldir",{yeniPlaylist,basliklar,oda,kapaklar});
+    socket.emit("playlistten_Kaldir",{yeniPlaylist,basliklar,oda :getCookie("oda"),kapaklar});
     setPlaylist(yeniPlaylist);
     setTitle(basliklar);
     setKapakFotografi(kapaklar);
@@ -743,7 +747,7 @@ function App() {
         const kullanici=getCookie("username");
         mesajGoster(x,kullanici);
         setMesaj("");
-        socket.emit("mesaj_gonder",{x,oda,kullanici});
+        socket.emit("mesaj_gonder",{x,oda :getCookie("oda"),kullanici});
       }else{
         setUrl(x);
         videoEkle(x);
@@ -760,7 +764,8 @@ function App() {
     await response.json();
 
     document.cookie = "username=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
-    socket.emit("odadan_ayril",oda);
+    document.cookie = "oda=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
+    socket.emit("odadan_ayril",{oda :getCookie("oda")});
     socket.disconnect();
     setOda("");
     setKullaniciAdi("");
@@ -774,8 +779,9 @@ function App() {
   const kullanicilarGoster = () => {
     setKullanicilarVisible(!kullanicilarVisible);
     if (!kullanicilarVisible) {
-      socket.emit("getUsersInRoom",oda,(users)=>{
+      socket.emit("getUsersInRoom",getCookie("oda"),(users)=>{
         setOdadakiKullanicilar(users);
+        console.log(users);
       });
     }
   }
@@ -907,7 +913,8 @@ return (
               
               <div className="right-panel">
                 <div className="playlist-container">
-                  <h3>Playlist</h3><button onClick={playlistTemizle}>Playlist Temizle</button>
+                  <div class="playlist-header">
+                  <h3>Playlist</h3><button onClick={playlistTemizle}>Playlist Temizle</button></div>
                   <div className='video-listesi'>
                     {playlist.map((url, index) => (
                       <div key={index} className="video-item">

@@ -87,11 +87,17 @@ body {
   
 }
 
+.playlist-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 15px;
+}
+
 .playlist-container h3 {
   color: #90caf9;
   font-size: 1.3rem;
-  margin-bottom: 15px;
-  display: inline-block;
+  margin: 0;
 }
 
 .playlist-container button {
@@ -104,7 +110,6 @@ body {
   font-size: 12px;
   font-weight: 600;
   transition: all 0.3s ease;
-  margin-left: 15px;
 }
 
 .playlist-container button:hover {
@@ -178,6 +183,7 @@ body {
   line-height: 1.4;
   display: -webkit-box;
   -webkit-line-clamp: 3;
+  line-clamp: 3;
   -webkit-box-orient: vertical;
   overflow: hidden;
   font-weight: 500;
@@ -185,8 +191,9 @@ body {
 
 .delete-button {
   position: absolute;
-  top: 8px;
+  top: 50%;
   right: 8px;
+  transform: translateY(-50%);
   background: rgba(211, 47, 47, 0.8);
   color: white;
   border: none;
@@ -209,7 +216,7 @@ body {
 
 .delete-button:hover {
   background: #d32f2f;
-  transform: scale(1.1);
+  transform: translateY(-50%) scale(1.1);
 }
 
 /* Chat Container - Increased height */
