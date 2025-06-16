@@ -8,15 +8,7 @@ require('dotenv').config();
 const cookie = require('cookie');
 const cookieParser = require('cookie-parser');
 
-const PORT=3000
-app.use(cors({
-    origin: 'http://192.168.1.171:3000',
-    credentials: true
-}));
-app.use(express.json());
-app.use(cookieParser());
-
-const SECRET_KEY = process.env.SECRET_KEY;
+const PORT = process.env.PORT;
 const server = http.createServer(app);
 
 const io = new Server(server, {
@@ -26,6 +18,14 @@ const io = new Server(server, {
         
     }
 })
+app.use(cors({
+    origin: 'http://192.168.1.171:3000',
+    credentials: true
+}));
+app.use(express.json());
+app.use(cookieParser());
+
+const SECRET_KEY = process.env.SECRET_KEY;
 
 app.post('/create-room',(req,res)=>{
     const { kullaniciAdi } = req.body;
@@ -180,10 +180,6 @@ app.post('/oda-cek',(req,res)=>{
 
 })
 
-app.listen(PORT, () => {
-  console.log(`Sunucu ${PORT} portunda çalışıyor`);
-});
-
 
 io.use((socket, next) => {
   const cookies = socket.handshake.headers.cookie;
@@ -258,13 +254,14 @@ io.on("connection",(socket)=>{
             socket.leave(socket.currentRoom);
         }
         
-        socket.username = data.kullaniciAdi;  
+        socket.username = data.kullaniciAdi; 
         socket.yetkiVideoControls=true;
         socket.yetkiPlaylist=true;
         username=data.kullaniciAdi;
         socket.join(data.e);
         socket.currentRoom = data.e;
-        socket.emit("odayaGirildi", { oda: data.e,username});
+        console.log(socket.id);
+        io.to(socket.id).emit("odayaGirildi", { oda: data.e,username});
 
     })
     socket.on("odadan_ayril",data=>{
