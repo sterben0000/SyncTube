@@ -1,4 +1,4 @@
-# 🎬 SyncTube
+# SyncTube
 
 SyncTube, kullanıcıların aynı odaya girerek senkronize bir şekilde YouTube videoları izleyebileceği bir web uygulamasıdır.
 
