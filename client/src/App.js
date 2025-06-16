@@ -48,6 +48,7 @@ function App() {
   const [volume, setVolume] = useState(50);
   const [kullanicilarVisible, setKullanicilarVisible] = useState(false);
   const [odadakiKullanicilar, setOdadakiKullanicilar] = useState([]);
+  const [kullaniciAdiYok, setKullaniciAdiYok] = useState(true);
 
 
   const videoOynuyormuRef=useRef(videoOynuyormu);
@@ -143,7 +144,9 @@ function App() {
       const urlOda = params.get("oda");
       if (urlOda) {
         if(socket==null){
-          odaKatil(getCookie("oda"),getCookie("username"));
+          if(getCookie("username")==null){
+            setKullaniciAdiYok(true);
+          }
         }
         setOda(urlOda);
         setCookie("oda",urlOda,1);
@@ -223,7 +226,8 @@ function App() {
   useEffect(() => {
     
     if (location.pathname !== "/chat") return;
-
+    if (kullaniciAdiYok==true) return;
+    
 
     videoSirasiRef.current = videoSirasi;
     playlistRef.current = playlist;
@@ -303,11 +307,12 @@ function App() {
     };
 
   
-  }, [location,playlist,videoSirasi,title,kapakFotografi]);
+  }, [location,playlist,videoSirasi,title,kapakFotografi,kullaniciAdiYok]);
 
   useEffect( () => {
     console.log(socket);
     if (!socket) return;
+    if (kullaniciAdiYok) return;
     
       socket.on("odaOlusturuldu",data=>{
         console.log("çalışıyor");
@@ -490,7 +495,7 @@ function App() {
         socket.off("gonderPlaylist");
       };
   
-  }, [socket]);
+  }, [socket,kullaniciAdiYok]);
 
   // 📤 Video URL gönderme ve oynatma
   const videoyuAc = (x) => {
@@ -767,11 +772,6 @@ function App() {
     document.cookie = "oda=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
     socket.emit("odadan_ayril",{oda :getCookie("oda")});
     socket.disconnect();
-    setOda("");
-    setKullaniciAdi("");
-    setOdadakiKullanicilar([]);
-    setPlaylist([]);
-    setSocket(null);
     window.location.href = "/";
 
   }
@@ -858,6 +858,15 @@ function App() {
     
     
   }
+
+  const kullaniciAdiAl = (e) =>{
+
+    setCookie("username",e,1);
+    setKullaniciAdiYok(false);
+    odaKatil(getCookie("oda"),getCookie("username"));
+
+
+  }
   
 return (
     <Routes>
@@ -872,14 +881,43 @@ return (
             socket={socket}
             odaOlustur={odaOlustur}
             odaKatil={odaKatil}
-           
+            setKullaniciAdiYok={setKullaniciAdiYok}
           />
         }
       />
       <Route
         path="/chat"
         element={
-          <div className="App">
+          <div className="App">      
+          {kullaniciAdiYok && (
+              <div className="username-overlay">
+                <div className="username-modal">
+                  <h2>Kullanıcı Adı Girin</h2>
+                  <input
+                    type="text"
+                    value={kullaniciAdi}
+                    onChange={(e) => setKullaniciAdi(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" && kullaniciAdi.trim()) {
+                        kullaniciAdiAl(e);
+                      }
+                    }}
+                    placeholder="Kullanıcı adınızı girin..."
+                    autoFocus
+                  />
+                  <button 
+                    onClick={() => {
+                      if (kullaniciAdi.trim()) {
+                        kullaniciAdiAl(kullaniciAdi);
+                        
+                      }
+                    }}
+                  >
+                    Devam Et
+                  </button>
+                </div>
+              </div>
+            )}      
             <div className="content-wrapper">
               <div className="left-panel">
                 <div className="kutu" ref={fullScreenContainerRef}>
@@ -947,9 +985,7 @@ return (
                   
                   {kullanicilarVisible ? (
                     <div className="kullanicilar-paneli-content">
-                      <div className="kullanicilar-basligi">
-                        <span>Odadaki Kullanıcılar</span>
-                      </div>
+                    
                       <div className="kullanicilar-listesi">
                         {odadakiKullanicilar.map((kullanici, index) => (
                           <div key={index} className="kullanici-item">

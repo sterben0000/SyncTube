@@ -9,10 +9,11 @@ function setCookie(cname, cvalue, exdays) {
   document.cookie = cname + "=" + cvalue + ";" + expires + ";path=/";
 }
 
-function HomePage({ oda, setOda, kullaniciAdi, setKullaniciAdi, odaOlustur, odaKatil }) {
+function HomePage({ oda, setOda, kullaniciAdi, setKullaniciAdi, odaOlustur, odaKatil,setKullaniciAdiYok }) {
   const navigate = useNavigate();
   
   const handleCreateRoom = () => {
+    setKullaniciAdiYok(false);
     if (kullaniciAdi.trim()) {
       odaOlustur(kullaniciAdi);
     } else {
@@ -21,6 +22,7 @@ function HomePage({ oda, setOda, kullaniciAdi, setKullaniciAdi, odaOlustur, odaK
   };
 
   const handleJoinRoom = () => {
+    setKullaniciAdiYok(false);
     if (kullaniciAdi.trim() && oda.trim()) {
       odaKatil(oda, kullaniciAdi);
     } else {
@@ -35,7 +37,7 @@ function HomePage({ oda, setOda, kullaniciAdi, setKullaniciAdi, odaOlustur, odaK
         <div className="homepage-header">
           <h1 className="homepage-title">
             <i className="fas fa-play-circle"></i>
-            Video Watch Party
+            SyncTube
           </h1>
           <p className="homepage-subtitle">
             Arkadaşlarınızla birlikte video izleyin ve sohbet edin
