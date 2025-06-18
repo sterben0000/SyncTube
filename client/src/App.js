@@ -49,6 +49,8 @@ function App() {
   const [kullanicilarVisible, setKullanicilarVisible] = useState(false);
   const [odadakiKullanicilar, setOdadakiKullanicilar] = useState([]);
   const [kullaniciAdiYok, setKullaniciAdiYok] = useState(true);
+  const [davetPenceresiVisible, setDavetPenceresiVisible] = useState(false);
+  const [copySuccess, setCopySuccess] = useState(false);
 
 
   const videoOynuyormuRef=useRef(videoOynuyormu);
@@ -141,18 +143,18 @@ function App() {
     // Sadece chat sayfasında çalışsın
     if (location.pathname === "/chat") {
       const params = new URLSearchParams(location.search);
-      const urlOda = params.get("oda");
-      if (urlOda) {
+      const odaID = params.get("oda");
+      if (odaID) {
         if(socket==null){
           if(getCookie("username")==null){
             setKullaniciAdiYok(true);
           }
         }
-        setOda(urlOda);
-        setCookie("oda",urlOda,1);
+        setOda(odaID);
+        setCookie("oda",odaID,1);
       }
     }
-  }, [location]);
+  }, [location,socket]);
 
   useEffect(()=>{
     videoOynuyormuRef.current=videoOynuyormu;
@@ -226,7 +228,7 @@ function App() {
   useEffect(() => {
     
     if (location.pathname !== "/chat") return;
-    if (kullaniciAdiYok==true) return;
+    if (kullaniciAdiYok) return;
     
 
     videoSirasiRef.current = videoSirasi;
@@ -426,8 +428,8 @@ function App() {
           credentials: 'include'
         });
         
-        var data=await response.json()
-        socket.emit("yeniToken",data)
+        var veri=await response.json()
+        socket.emit("yeniToken",veri)
         socket.emit("getUsersInRoom",{oda :getCookie("oda")},(users)=>{
           setOdadakiKullanicilar(users);
         });
@@ -441,8 +443,8 @@ function App() {
           credentials: 'include'
         });
         
-        var data=await response.json()
-        socket.emit("yeniToken",data)
+        var veri=await response.json()
+        socket.emit("yeniToken",veri)
         socket.emit("getUsersInRoom",{oda :getCookie("oda")},(users)=>{
           setOdadakiKullanicilar(users);
         });
@@ -457,8 +459,8 @@ function App() {
           credentials: 'include'
         });
         
-        var data=await response.json()
-        socket.emit("yeniToken",data)
+        var veri=await response.json()
+        socket.emit("yeniToken",veri)
         socket.emit("getUsersInRoom",{oda :getCookie("oda")},(users)=>{
           setOdadakiKullanicilar(users);
         });
@@ -472,8 +474,8 @@ function App() {
           credentials: 'include'
         });
         
-        var data=await response.json()
-        socket.emit("yeniToken",data)
+        var veri=await response.json()
+        socket.emit("yeniToken",veri)
         socket.emit("getUsersInRoom",{oda :getCookie("oda")},(users)=>{
           setOdadakiKullanicilar(users);
         });
@@ -867,7 +869,51 @@ function App() {
 
 
   }
-  
+
+
+
+  // Davet Penceresiını açma fonksiyonu
+  const davetPenceresiAc = () => {
+    setDavetPenceresiVisible(true);
+  };
+
+  // Davet Penceresiını kapatma fonksiyonu
+  const davetPenceresiKapat = () => {
+    setDavetPenceresiVisible(false);
+    setCopySuccess(false);
+  };
+
+  // Link kopyalama fonksiyonu
+  const linkKopyala = async () => {
+    try {
+      const currentUrl = window.location.href;
+      await navigator.clipboard.writeText(currentUrl);
+      setCopySuccess(true);
+      
+      // 2 saniye sonra success mesajını gizle
+      setTimeout(() => {
+        setCopySuccess(false);
+      }, 2000);
+    } catch (err) {
+      console.error('Kopyalama başarısız:', err);
+      // Fallback method
+      const textArea = document.createElement('textarea');
+      textArea.value = window.location.href;
+      document.body.appendChild(textArea);
+      textArea.select();
+      document.execCommand('copy');
+      document.body.removeChild(textArea);
+      setCopySuccess(true);
+      
+      setTimeout(() => {
+        setCopySuccess(false);
+      }, 2000);
+    }
+  };
+
+
+
+
 return (
     <Routes>
       <Route
@@ -917,7 +963,42 @@ return (
                   </button>
                 </div>
               </div>
-            )}      
+            )}  
+                {davetPenceresiVisible && (
+                  <div className="davet-overlay" onClick={davetPenceresiKapat}>
+                    <div className="davet-modal" onClick={(e) => e.stopPropagation()}>
+                      <h2>Arkadaşlarını Davet Et</h2>
+                      <p>Bu linki paylaşarak arkadaşlarının odaya katılmasını sağla:</p>
+                      
+                      <div className="link-container">
+                        <input
+                          type="text"
+                          value={window.location.href}
+                          readOnly
+                          className="link-input"
+                          onClick={(e) => e.target.select()}
+                        />
+                        <button 
+                          className={`copy-button ${copySuccess ? 'copied' : ''}`}
+                          onClick={linkKopyala}
+                        >
+                          {copySuccess ? '✓ Kopyalandı' : 'Kopyala'}
+                        </button>
+                      </div>
+
+                      <div className="modal-actions">
+                        <button className="close-button" onClick={davetPenceresiKapat}>
+                          Kapat
+                        </button>
+                      </div>
+
+                      <div className={`success-message ${copySuccess ? 'show' : ''}`}>
+                        Link başarıyla kopyalandı!
+                      </div>
+                    </div>
+                  </div>
+                )}  
+
             <div className="content-wrapper">
               <div className="left-panel">
                 <div className="kutu" ref={fullScreenContainerRef}>
@@ -974,7 +1055,7 @@ return (
                 
                 <div className="chat-container">
                   <div className='oda-basligi'>
-                    {oda} 
+                    <button className="davet-button" onClick={davetPenceresiAc}>Davet Et</button>
                     <div className="oda-controls">
                       <button onClick={kullanicilarGoster}>
                         {kullanicilarVisible ? '💬' : '👥'}
@@ -983,7 +1064,7 @@ return (
                     </div>
                   </div>
                   
-                  {kullanicilarVisible ? (
+                  {kullanicilarVisible && (
                     <div className="kullanicilar-paneli-content">
                     
                       <div className="kullanicilar-listesi">
@@ -1029,8 +1110,7 @@ return (
                         )}
                       </div>
                     </div>
-                  ) : (
-                    <>
+                  )}
                       <div className="mesaj-listesi" ref={messageContainerRef}></div>
                       <div className="gonder-paneli">
                         <input
@@ -1042,8 +1122,6 @@ return (
                         />
                         <button onClick={() => mesajGonder(mesaj)}>Gönder</button>
                       </div>
-                    </>
-                  )}
                 </div>
               </div>
             </div>

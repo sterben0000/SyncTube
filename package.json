@@ -1,9 +1,10 @@
 {
   "devDependencies": {
-    "concurrently": "^9.1.2"
+    "concurrently": "^9.1.2",
+    "gh-pages": "^6.3.0"
   },
+  "homepage":"https://sterben0000.github.io/synctube",
   "scripts": {
-    
     "start": "concurrently \"npm run server\" \"npm run client\"",
     "client": "cd client && npm start",
     "server": "cd server && npm start"
