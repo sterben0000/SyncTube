@@ -19,7 +19,7 @@ git clone https://github.com/sterben0000/SyncTube--Watch2gather-Klonu.git
 cd SyncTube--Watch2gather-Klonu
 ```
 
-### 2. Bağımlılıkları Yükleyin
+### 2. Bağımlılıkları Yükleyin(Ana dosya, client, ve server dosyaları için aşağıdaki komutla ayrı ayrı yüklemeniz lazım)
 
 ```bash
 npm install
