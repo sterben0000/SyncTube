@@ -302,8 +302,12 @@ io.on("connection",(socket)=>{
         socket.to(data.oda).emit("kaldir_Playlistten",data);
     })
 
-    socket.on("video_baslatDurdur",(data)=>{
-        socket.to(data).emit("baslatDurdur_video");
+    socket.on("videoDurdur",(data)=>{
+        socket.to(data).emit("durdur_Video");
+    })
+
+    socket.on("videoBaslat",(data)=>{
+        socket.to(data).emit("baslat_Video");
     })
 
     socket.on("video_geriSar",(data)=>{

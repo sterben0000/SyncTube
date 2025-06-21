@@ -35,7 +35,7 @@ const VideoControls = ({
             console.log("yetkin yok!");
             return;
         }
-        socket.emit("video_baslatDurdur", oda);
+        
         playPauseVideo();
     }
 

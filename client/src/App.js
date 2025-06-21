@@ -239,7 +239,7 @@ function App() {
 
 
     // YouTube API Script'i ekle
-    if (!window.YT) {
+    if (!window.YT && socket ) {
       const tag = document.createElement('script');
       tag.src = 'https://www.youtube.com/iframe_api';
       document.body.appendChild(tag);
@@ -361,11 +361,9 @@ function App() {
       })
       
 
-
       socket.on("temizlePlaylist",()=>{
-        setPlaylist([]);
-        setKapakFotografi([]);
-        setTitle([]);
+        console.log("saaaaaa");
+        playlistTemizle();
       })
 
       socket.on("kaldir_Playlistten",data=>{
@@ -393,8 +391,14 @@ function App() {
       });
       
       // ⏯ Video başlat/durdur komutu alındığında
-      socket.on("baslatDurdur_video", () => {
-        playPauseVideo();
+      socket.on("durdur_Video",()=>{
+        setVideoOynuyormu(false);
+        playerInstance.current.pauseVideo();
+      });
+
+      socket.on("baslat_Video",()=>{
+        setVideoOynuyormu(true);
+        playerInstance.current.playVideo();
       });
 
       socket.on("geriSar_video",()=>{
@@ -488,7 +492,8 @@ function App() {
       // 🔚 Temizlik
       return () => {
         socket.off("url_al");
-        socket.off("baslatDurdur_video");
+        socket.off("baslat_Video");
+        socket.off("durdur_Video");
         socket.off("geriSar_video");
         socket.off("ileriSar_video");
         socket.off("guncelleSaniye");
@@ -583,10 +588,12 @@ function App() {
       const state = playerInstance.current.getPlayerState();
       if (state === window.YT.PlayerState.PLAYING) {
         setVideoOynuyormu(false);
+        socket.emit("videoDurdur",oda);
         playerInstance.current.pauseVideo();
         
-      } else {
+      } else if(state === window.YT.PlayerState.PAUSED) {
         setVideoOynuyormu(true);
+        socket.emit("videoBaslat",oda);
         playerInstance.current.playVideo();
       }
     }
@@ -626,8 +633,7 @@ function App() {
       setVideoHiz(hiz);
     }
   }
-
-  const playlistTemizle = async () => {
+  const oynatmaListesiTemizle = async ()=>{
     const yetkiVarMi = await new Promise((resolve) => {
         socket.emit("yetki_kontrolPlaylist",(izinVar) => {
           resolve(izinVar);
@@ -638,10 +644,16 @@ function App() {
         console.log("yetkin yok!");
         return;
       }
+
+    playlistTemizle();
+    socket.emit("playlistTemizle",{oda :getCookie("oda")});
+  }
+
+  const playlistTemizle = () => {
+    
     setPlaylist([]);
     setKapakFotografi([]);
     setTitle([]);
-    socket.emit("playlistTemizle",{oda :getCookie("oda")});
   }
 
   const kaldir =async (x) => {
@@ -1030,7 +1042,7 @@ return (
               <div className="right-panel">
                 <div className="playlist-container">
                   <div class="playlist-header">
-                  <h3>Playlist</h3><button onClick={playlistTemizle}>Playlist Temizle</button></div>
+                  <h3>Playlist</h3><button onClick={oynatmaListesiTemizle}>Playlist Temizle</button></div>
                   <div className='video-listesi'>
                     {playlist.map((url, index) => (
                       <div key={index} className="video-item">
