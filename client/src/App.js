@@ -51,6 +51,7 @@ function App() {
   const [kullaniciAdiYok, setKullaniciAdiYok] = useState(true);
   const [davetPenceresiVisible, setDavetPenceresiVisible] = useState(false);
   const [copySuccess, setCopySuccess] = useState(false);
+  const [mesajlar, setMesajlar] = useState([]);
 
 
   const videoOynuyormuRef=useRef(videoOynuyormu);
@@ -63,15 +64,14 @@ function App() {
   const titleRef = useRef(title);
   const kapakFotografiRef=useRef(kapakFotografi);
   const videoIdRef=useRef(videoId);
-  const messageContainerRef = useRef(null);
   const playerRef = useRef(null);
   const playerInstance = useRef(null);
-  const ilerlemeIntervalRef = useRef(null); // İlerleme çubuğu için ayrı bir interval referansı
-  const zamanIntervalRef = useRef(null); // Video zamanı için ayrı bir interval referansı
+  const ilerlemeIntervalRef = useRef(null);
+  const zamanIntervalRef = useRef(null); 
 
 
   const odaOlustur = async (kullaniciAdi)=> {
-    console.log(kullaniciAdi);
+    //Yeni Oda oluşturup oluşturan kişiye owner yetkisi olan tokeni http only cookie olarak saklama
     const response = await fetch('http://localhost:3001/create-room', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -81,19 +81,19 @@ function App() {
 
     await response.json();
 
-    
+    //Cookie oluştuktan sonra socket bağlantısı kurma
     sockett = io("http://localhost:3001",{
       withCredentials: true
     }); 
 
-    const odaid = Math.random().toString(36).substr(2, 9);
-    sockett.emit("oda_olustur",{odaid,kullaniciAdi});
+    const odaid = Math.random().toString(36).substr(2, 9); //Rastgele bir oda id'si oluşturma
+    sockett.emit("oda_olustur",{odaid,kullaniciAdi});//Oluşturulan id ile odayı oluşturma
 
     setSocket(sockett);
 
     
   }
-
+  //Var olan bir odaya katılıp normal kullanıcı yetkilerinin olduğu tokeni http only cookie olarak saklama
   const odaKatil = async (e,kullaniciAdi)=> {
     const response = await fetch('http://localhost:3001/join-room', {
       method: 'POST',
@@ -104,16 +104,18 @@ function App() {
     
     await response.json();
     
+    //Cookie oluştuktan sonra socket bağlantısı kurma
     sockett = io("http://localhost:3001",{
       withCredentials: true
     }); 
     
-    sockett.emit("odaya_gir",{e,kullaniciAdi});
+    sockett.emit("odaya_gir",{e,kullaniciAdi});//Fonksiyondan gelen oda id ile (e) odaya katılma
 
     setSocket(sockett);
   }
 
 
+  //Sohbet kısmına atılan metnin url olup olmadığını kontrol edecek fonksiyon
   const urlMi = (str) => {
     const pattern = new RegExp(
       '^(https?:\\/\\/)?' +                                // protokol
@@ -126,22 +128,21 @@ function App() {
     return pattern.test(str.trim());
   };
 
-  // 🧩 YouTube video ID çıkarma fonksiyonu
+  //Atılan youtube linkinden videonun id'sini çıkaran fonksiyon
   const extractVideoId = (url) => {
     const regex = /(?:youtube\.com\/.*v=|youtu\.be\/|youtube\.com\/embed\/)([a-zA-Z0-9_-]{11})/;
     const match = url.match(regex);
     return match ? match[1] : null;
   };
 
-
+  //React'de state'ler hemen render olmadığı için en güncel değere ulaşabilmek için aşağıdaki gibi bir referans oluşturuyoruz.
+  //Her setVideoId useState'i kullanıldığında aşağıdaki useEffect çalışıyor.
   useEffect(()=>{
     videoIdRef.current=videoId;
   },[videoId]);
 
   useEffect(() => { 
-
-
-    // Sadece chat sayfasında çalışsın
+    //Kullanıcı /chat sayfasına gelince aşağıdaki fonksiyon çalışıyor
     if (location.pathname === "/chat") {
       const params = new URLSearchParams(location.search);
       const odaID = params.get("oda");
@@ -157,34 +158,35 @@ function App() {
     }
   }, [location,socket]);
 
+  //React'de state'ler hemen render olmadığı için en güncel değere ulaşabilmek için aşağıdaki gibi bir referans oluşturuyoruz.
   useEffect(()=>{
     videoOynuyormuRef.current=videoOynuyormu;
   },[videoOynuyormu])
 
-  // 🔄 Videonun ilerleme yüzdesini güncelle
+  //Oluşturduğumuz player'ın ilerleme çubuğunun ilerlemesini sağlayan fonksiyon
   const ilerlemeCubugu = () => {
     
     if (ilerlemeIntervalRef.current) clearInterval(ilerlemeIntervalRef.current);
-    ilerlemeIntervalRef.current = setInterval(() => {
+    ilerlemeIntervalRef.current = setInterval(() => { //Her 100 milisaniyede bir çalışan bir interval başlatıyoruz
       if (playerInstance.current && playerInstance.current.getDuration) {
-        const videoSaniyesi = playerInstance.current.getCurrentTime();
+        const videoSaniyesi = playerInstance.current.getCurrentTime(); 
         const videoSuresi = playerInstance.current.getDuration();
         if (videoSuresi > 0) {
-          const yuzde = (videoSaniyesi / videoSuresi) * 100;
+          const yuzde = (videoSaniyesi / videoSuresi) * 100; //Videonun yüzde kaçında olduğumuzu hesaplayıp aşağıdaki satırda ilerleme çubuğu barının o yüzdede güncellenmesini sağlıyoruz
           setVideoYuzde({ width: yuzde + '%' });
         }
       }
     }, 100);
   };
 
-  // 🔄 Videonun süresini ve mevcut zamanını güncelle
+  //Videonun süresini ve anlık saniyesini görmemizi sağlayan fonksiyon
   const videoZamani = () => {
     
     if (zamanIntervalRef.current) clearInterval(zamanIntervalRef.current);
     zamanIntervalRef.current = setInterval(() => {
       if (playerInstance.current && playerInstance.current.getDuration()) {
-        const current = playerInstance.current.getCurrentTime();
-        const duration = playerInstance.current.getDuration();
+        const current = playerInstance.current.getCurrentTime(); //Videonun kaçıncı saniyede olduğu bilgisini alıyoruz
+        const duration = playerInstance.current.getDuration(); //Videonun toplam kaç saniye olduğu bilgisini alıyoruz
         
         setSuankiZaman(saniyeyiCevir(current));
         setVideoSuresi(saniyeyiCevir(duration));
@@ -194,7 +196,7 @@ function App() {
     }, 100);
   }
   
-
+  //Yukarıda bize gelen saniye bilgilerini bu fonksiyonlar saat/dakika/saniye formatına çevirip return ediyoruz.
   const saniyeyiCevir = (saniye) =>{
     if (!saniye) return "00:00";
     const saat = Math.floor(saniye/3600);
@@ -209,6 +211,7 @@ function App() {
     return `${cevrilmisSaat}${cevrilmisDakika}:${cevrilmisSaniye}`;
   }
 
+  //Fareyi ilerleme çubuğunda gezdirdiğimizde farenin olduğu kısmın kaçıncı saniyede olduğunu göstermesini sağlayan fonksiyon
   const fareHareketi=(e)=>{
     const ilerlemeCubugu_Alani = e.currentTarget;
     const rect = ilerlemeCubugu_Alani.getBoundingClientRect();
@@ -228,18 +231,18 @@ function App() {
 
   useEffect(() => {
     
-    if (location.pathname !== "/chat") return;
-    if (kullaniciAdiYok) return;
+    if (location.pathname !== "/chat") return; //Kullanıcı bir odaya girmezse bu kısmın çalışmasını engelliyoruz
+    if (kullaniciAdiYok) return; //Kullanıcı linkten giriş yaptığı zaman kullanıcı adını girmeden bu kısmın çalışmasını engelliyoruz
     
-
+    //Gerekli state'lerin referansı alınıyor
     videoSirasiRef.current = videoSirasi;
     playlistRef.current = playlist;
     kapakFotografiRef.current=kapakFotografi;
     titleRef.current=title;
 
 
-    // YouTube API Script'i ekle
-    if (!window.YT && socket ) {
+
+    if (!window.YT && socket ) { //Youtube iframe api yüklenmediyse veya socket bağlantısı kurulmadıysa api'ın yüklenmesini engelliyoruz
       const tag = document.createElement('script');
       tag.src = 'https://www.youtube.com/iframe_api';
       document.body.appendChild(tag);
@@ -260,39 +263,39 @@ function App() {
             },
             events: {
               onReady: ()=>{
-                socket.emit("odaya_katildi",{kullanici:getCookie("username"),socketId: socket.id,oda :getCookie("oda")},()=>{
-                  socket.emit("url_cek",{oda :getCookie("oda"),socketId: socket.id});
+                socket.emit("odaya_katildi",{kullanici:getCookie("username"),socketId: socket.id,oda :getCookie("oda")},()=>{ //iFrame Api yüklendiği zaman kullanıcının odaya katıldığı bilgisi odadaki kişilere gidiyor
+                  socket.emit("url_cek",{oda :getCookie("oda"),socketId: socket.id}); //En son katılan kişi odadaki Playlist'i veya açık olan videoyu çekmek için sunucuya "url_cek" olayını gönderiyor. 
                 });
               },
               onStateChange: (event) => {
                  
-                if (event.data === window.YT.PlayerState.PLAYING) {
-                  playerInstance.current.setPlaybackQuality("highres");
+                if (event.data === window.YT.PlayerState.PLAYING) { //Video oynuyorken ilerleme çubuğu ve video zamanı intervalleri başlatılıyor
+                  
                   ilerlemeCubugu();
                   videoZamani();
                   
                 } else if (
-                  event.data === window.YT.PlayerState.PAUSED ||
+                  event.data === window.YT.PlayerState.PAUSED || //Video durduysa veya bittiyse intervaller durduruluyor
                   event.data === window.YT.PlayerState.ENDED
                 ) {   
                       clearInterval(ilerlemeIntervalRef.current);
                       clearInterval(zamanIntervalRef.current); 
                 }
-                if(event.data === window.YT.PlayerState.ENDED){
+                if(event.data === window.YT.PlayerState.ENDED){//Video bittiği zaman bir sonraki videoya geçiyor
                     
-                    setVideoSirasi((onceki) => {
-                      const yeniVideoSirasi = onceki + 1; // Video sırasını artır
+                    setVideoSirasi((onceki) => { 
+                      const yeniVideoSirasi = onceki + 1;
                       if(playlistRef.current[yeniVideoSirasi]){
-                      videoyuAc(playlistRef.current[yeniVideoSirasi]);} // Yeni sıradaki videoyu oynat
-                      return yeniVideoSirasi; // State'i güncelle
+                      videoyuAc(playlistRef.current[yeniVideoSirasi]);} 
+                      return yeniVideoSirasi; 
                     });  
                 }
-                if(event.data === window.YT.PlayerState.PAUSED){
+                if(event.data === window.YT.PlayerState.PAUSED){ //Kullanıcı videoyu bizim yaptığımız player'ı kullanmadan durdurmaya çalışırsa engelleniyor
                   if(videoOynuyormuRef.current===true){
                     playerInstance.current.playVideo();
                   }
                 }
-                if(event.data === window.YT.PlayerState.PLAYING){
+                if(event.data === window.YT.PlayerState.PLAYING){////Kullanıcı videoyu bizim yaptığımız player'ı kullanmadan başlatmaya çalışırsa engelleniyor
                   if(videoOynuyormuRef.current===false){
                     playerInstance.current.pauseVideo();
                   }
@@ -314,11 +317,12 @@ function App() {
 
   useEffect( () => {
     console.log(socket);
-    if (!socket) return;
+    if (!socket) return; //Socket bağlantısı yoksa veya kullanıcı adı girilmemişse bu useEffect durduruluyor
     if (kullaniciAdiYok) return;
     
+      //Sunucudan gelen olayları dinleyen kodlar
+
       socket.on("odaOlusturuldu",data=>{
-        console.log("çalışıyor");
         setCookie("username",data.username,1);
         navigate(`/chat?oda=${data.oda}`);
         setOda(data.oda);
@@ -331,14 +335,15 @@ function App() {
 
       })
 
-    // 📥 URL alındığında oynat
-      socket.on("url_al", (data) => {
+
+      socket.on("url_al", (data) => { //Sonradan odaya giren kişiye odadaki diğer kişilerden gelen bilgiler alınıyor
         if(data.hedefID){
-          setVideoSirasi(videoSirasi);
+          setVideoSirasi(data.videoSirasi);
           setPlaylist(data.playlist);
           setTitle(data.basliklar);
           setKapakFotografi(data.kapaklar);
-          if (playerInstance.current && data.videoID) {
+          
+          if (playerInstance.current && data.videoID) { //Odada herhangi bir video oynuyorsa video başlatılıyor
             console.log(videoIdRef.current);
             playerInstance.current.loadVideoById({
               videoId: data.videoID,       
@@ -347,23 +352,25 @@ function App() {
           }
         }
         else{
-          setVideoSirasi(videoSirasi);
+          setVideoSirasi(data.videoSirasi);
           videoyuAc(data.x);
         }
         
         
       });
 
-      socket.on("gonderPlaylist",data=>{
+      socket.on("gonderPlaylist",data=>{ //Bir kişi video eklediğinde playlist odadaki kişiler için güncelleniyor
         setPlaylist(data.playlist);
         setTitle(data.basliklar);
         setKapakFotografi(data.kapaklar); 
       })
       
 
+
       socket.on("temizlePlaylist",()=>{
-        console.log("saaaaaa");
-        playlistTemizle();
+        setPlaylist([]);
+        setKapakFotografi([]);
+        setTitle([]);
       })
 
       socket.on("kaldir_Playlistten",data=>{
@@ -373,14 +380,23 @@ function App() {
       })
 
       socket.on("katildi",data=>{
-        mesajGoster("Odaya Katıldı:",data.kullanici);    
+        mesajGoster("Odaya Katıldı",data.kullanici);   
+        socket.emit("getUsersInRoom",getCookie("oda"),(users)=>{
+          setOdadakiKullanicilar(users);
+        });
 
       })
+      socket.on("odadanAyrildi",data=>{
+        mesajGoster("Odadan Ayrıldı",data);   
+        socket.emit("getUsersInRoom",getCookie("oda"),(users)=>{
+          setOdadakiKullanicilar(users);
+        });
+      })
 
-      socket.on("yeniKatilana_gonder", (hedefID) => {
+      socket.on("yeniKatilana_gonder", (hedefID) => { //Yeni katılan kişiye odadaki kişiler tarafından playlist gönderiliyor
         socket.emit("url_gonder", {
           playlist: playlistRef.current,
-          videoSirasi,
+          videoSirasi: videoSirasiRef.current,
           oda,
           hedefID,
           basliklar: titleRef.current,
@@ -390,7 +406,7 @@ function App() {
         });
       });
       
-      // ⏯ Video başlat/durdur komutu alındığında
+      //Sunucudan aşağıdaki eventler gelirse gerekli işlemler yapılıyor
       socket.on("durdur_Video",()=>{
         setVideoOynuyormu(false);
         playerInstance.current.pauseVideo();
@@ -410,6 +426,7 @@ function App() {
         ileriSar();
       });
 
+      //Bir kişi videoyu ileri sardığında saniye bilgisi sunucu üzerinden odadaki kişilere aktarılıyor
       socket.on("guncelleSaniye",(data)=>{
         const player = playerInstance.current;
         if(player){
@@ -425,6 +442,7 @@ function App() {
         mesajGoster(data.x,data.kullanici);
       });
 
+      //Odanın sahibi herhangi bir kişinin yetkisin kaldırırsa aşağıdaki olaylar yetkisi kaldırılan kişi üzerinde çalışıyor
       socket.on("kaldirYetkiPlaylist",async (data)=>{
         const response = await fetch('http://localhost:3001/remove-playlist-permission',{
           method: 'POST',
@@ -433,9 +451,9 @@ function App() {
           credentials: 'include'
         });
         
-        var veri=await response.json()
-        socket.emit("yeniToken",veri)
-        socket.emit("getUsersInRoom",{oda :getCookie("oda")},(users)=>{
+        var veri=await response.json() //Yeni tokenin gelmesi bekleniyor
+        socket.emit("yeniToken",veri) //Yeni token sunucuya gönderiliyor ve odadaki kullanıcıların tutulduğu dizide yetkiler tokendeki yetkilere göre düzenleniyor
+        socket.emit("getUsersInRoom",getCookie("oda"),(users)=>{ //Odadaki kullanıcılar dizisini yeni yetki bilgileriyle beraber güncelliyor
           setOdadakiKullanicilar(users);
         });
 
@@ -450,7 +468,7 @@ function App() {
         
         var veri=await response.json()
         socket.emit("yeniToken",veri)
-        socket.emit("getUsersInRoom",{oda :getCookie("oda")},(users)=>{
+        socket.emit("getUsersInRoom",getCookie("oda"),(users)=>{
           setOdadakiKullanicilar(users);
         });
         
@@ -466,7 +484,7 @@ function App() {
         
         var veri=await response.json()
         socket.emit("yeniToken",veri)
-        socket.emit("getUsersInRoom",{oda :getCookie("oda")},(users)=>{
+        socket.emit("getUsersInRoom",getCookie("oda"),(users)=>{
           setOdadakiKullanicilar(users);
         });
 
@@ -481,7 +499,7 @@ function App() {
         
         var veri=await response.json()
         socket.emit("yeniToken",veri)
-        socket.emit("getUsersInRoom",{oda :getCookie("oda")},(users)=>{
+        socket.emit("getUsersInRoom",getCookie("oda"),(users)=>{
           setOdadakiKullanicilar(users);
         });
 
@@ -489,7 +507,7 @@ function App() {
 
 
 
-      // 🔚 Temizlik
+
       return () => {
         socket.off("url_al");
         socket.off("baslat_Video");
@@ -505,7 +523,8 @@ function App() {
   
   }, [socket,kullaniciAdiYok]);
 
-  // 📤 Video URL gönderme ve oynatma
+
+  //Gelen video id sine karşılık gelen videoyu başlatıyor
   const videoyuAc = (x) => {
     setUrl(x);
     const id = extractVideoId(x);
@@ -522,17 +541,18 @@ function App() {
     }
   };
 
+  //Playlistten herhangi bir video seçildiğinde video sırası güncelleniyor ve playlistten o video sırasına karşılık gelen video açılıyor.
   const videoSec = (x) => {
     setVideoSirasi((prevSirasi) => {
       const yeniSira = x;
       videoyuAc(playlist[yeniSira]);
-      socket.emit("url_gonder", { oda, x: playlist[yeniSira], videoSirasi: yeniSira });
+      socket.emit("url_gonder", { oda, x: playlist[yeniSira], videoSirasi: yeniSira }); //Oda bilgisi, açılan videonun id'si ve video sırası sunucu üzerinden odada ki diğer kişilere gönderiliyor
       return yeniSira;
     });
   };
 
-  const videoEkle = async (link) => {
-    const yetkiVarMi = await new Promise((resolve) => {
+  const videoEkle = async (link) => { //Playliste video ekleme fonksiyonu
+    const yetkiVarMi = await new Promise((resolve) => { //Kullanıcının video ekleme yetkisi var mı diye kontrol ediliyor
         socket.emit("yetki_kontrolPlaylist",(izinVar) => {
           resolve(izinVar);
         });
@@ -543,8 +563,8 @@ function App() {
         return;
       }
       
-      const { title: yeniBaslik, thumbnail: yeniKapak } = await baslikCek(link);
-      setPlaylist((prev) => {
+      const { title: yeniBaslik, thumbnail: yeniKapak } = await baslikCek(link); //Url üzerinden videonun kapak fotoğrafı ve başlık bilgisi çekiliyor
+      setPlaylist((prev) => {//Yeni video playliste ekleniyor.
         const updatedPlaylist = [...prev, link];
         const updatedTitles = [...title, yeniBaslik];
         const updatedThumbnails = [...kapakFotografi, yeniKapak];
@@ -552,7 +572,7 @@ function App() {
         setTitle(updatedTitles);
         setKapakFotografi(updatedThumbnails);
 
-        socket.emit("playlistGonder", {
+        socket.emit("playlistGonder", { //Bilgiler sunucu üzerinden odaya gönderiliyor
           playlist: updatedPlaylist,
           oda,
           basliklar: updatedTitles,
@@ -581,14 +601,14 @@ function App() {
       }
     };
 
-  // ⏯ Video oynat/duraklat
+
   const playPauseVideo = () => {
     
     if (playerInstance.current) {
       const state = playerInstance.current.getPlayerState();
       if (state === window.YT.PlayerState.PLAYING) {
         setVideoOynuyormu(false);
-        socket.emit("videoDurdur",oda);
+        socket.emit("videoDurdur",oda); //Videonun durdurulduğu bilgisi sunucu üzerinden diğer kişilere gidiyor
         playerInstance.current.pauseVideo();
         
       } else if(state === window.YT.PlayerState.PAUSED) {
@@ -599,7 +619,7 @@ function App() {
     }
   };
 
-  const geriSar = () => {
+  const geriSar = () => { //Video başa sarılıyor
     if(playerInstance.current){
       playerInstance.current.seekTo(0, true);
       setVideoYuzde({
@@ -608,7 +628,7 @@ function App() {
     }
   }
 
-  const ileriSar = () => {
+  const ileriSar = () => { //Video sona sarılıyor
     
     if(playerInstance.current){
       playerInstance.current.seekTo((playerInstance.current.getDuration()), true);
@@ -633,7 +653,8 @@ function App() {
       setVideoHiz(hiz);
     }
   }
-  const oynatmaListesiTemizle = async ()=>{
+
+  const playlistTemizle = async () => {
     const yetkiVarMi = await new Promise((resolve) => {
         socket.emit("yetki_kontrolPlaylist",(izinVar) => {
           resolve(izinVar);
@@ -644,16 +665,10 @@ function App() {
         console.log("yetkin yok!");
         return;
       }
-
-    playlistTemizle();
-    socket.emit("playlistTemizle",{oda :getCookie("oda")});
-  }
-
-  const playlistTemizle = () => {
-    
     setPlaylist([]);
     setKapakFotografi([]);
     setTitle([]);
+    socket.emit("playlistTemizle",{oda :getCookie("oda")});
   }
 
   const kaldir =async (x) => {
@@ -681,7 +696,7 @@ function App() {
   }
   
 
-  const ilerlemeCubugu_click = async (e) => {
+  const ilerlemeCubugu_click = async (e) => { //Videoyu ilerleme çubuğunda tıklanan saniyeye getiriyor
     const ilerlemeCubugu_Alani = e.currentTarget;
     const yetkiVarMi = await new Promise((resolve) => {
       socket.emit("yetki_kontrolVideoControls",(izinVar) => {
@@ -711,7 +726,7 @@ function App() {
   }
 
   const tamEkranYap = () => {
-    const elem = document.querySelector(".kutu"); // ya da playerRef.current.parentNode gibi
+    const elem = document.querySelector(".kutu"); 
 
     if (!document.fullscreenElement) {
       if (elem.requestFullscreen) {
@@ -742,28 +757,27 @@ function App() {
       player.setVolume(volume);
     }
   }, [volume]);
-
     
-  const [mesajlar, setMesajlar] = useState([]);
+ 
 
-  const mesajGoster = (message, kullanici) => {
+  const mesajGoster = (message, kullanici) => { //Sohbet penceresinde mesaj gösterme
     setMesajlar(prev => [...prev, { kullanici, message }]);
   };
 
-  useEffect(() => {
+  useEffect(() => { //Herhangi bir yeni mesaj geldiği zaman sohbet penceresini aşağıya kaydırma
     if (mesajListesiRef.current) {
       mesajListesiRef.current.scrollTop = mesajListesiRef.current.scrollHeight;
     }
   }, [mesajlar]);
 
-  const mesajGonder=(x)=>{
-    if(x!==""){
+  const mesajGonder=(x)=>{ //Mesaj gönderme fonksiyonu
+    if(x){
       
-      if(!urlMi(x)){
+      if(!urlMi(x)){ //Mesajın url olup olmadığı kontrol ediliyor
         const kullanici=getCookie("username");
         mesajGoster(x,kullanici);
         setMesaj("");
-        socket.emit("mesaj_gonder",{x,oda :getCookie("oda"),kullanici});
+        socket.emit("mesaj_gonder",{x,oda :getCookie("oda"),kullanici});//Mesajı gönderen ve mesaj içeriği sunucu üzerinden herkese gönderiliyor
       }else{
         setUrl(x);
         videoEkle(x);
@@ -777,11 +791,11 @@ function App() {
       method: 'POST',
       credentials: 'include'
     })
-    await response.json();
+    await response.json(); //HTTP only token cookie'si siliniyor
 
-    document.cookie = "username=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
+    socket.emit("odadan_ayril",{oda :getCookie("oda"),kullanici: getCookie("username")});//Odadan ayrılındığı bilgisi diğer kullanıcılara gidiyor
+    document.cookie = "username=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;"; //Cookieler siliniyor
     document.cookie = "oda=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
-    socket.emit("odadan_ayril",{oda :getCookie("oda")});
     socket.disconnect();
     window.location.href = "/";
 
@@ -792,7 +806,6 @@ function App() {
     if (!kullanicilarVisible) {
       socket.emit("getUsersInRoom",getCookie("oda"),(users)=>{
         setOdadakiKullanicilar(users);
-        console.log(users);
       });
     }
   }
@@ -870,7 +883,7 @@ function App() {
     
   }
 
-  const kullaniciAdiAl = (e) =>{
+  const kullaniciAdiAl = (e) =>{ //Bu fonksiyon odaya url üzerinden giriş yapanlar için kullanıcı adı alıyor
 
     setCookie("username",e,1);
     setKullaniciAdiYok(false);
@@ -879,14 +892,10 @@ function App() {
 
   }
 
-
-
-  // Davet Penceresiını açma fonksiyonu
   const davetPenceresiAc = () => {
     setDavetPenceresiVisible(true);
   };
 
-  // Davet Penceresiını kapatma fonksiyonu
   const davetPenceresiKapat = () => {
     setDavetPenceresiVisible(false);
     setCopySuccess(false);
@@ -899,13 +908,11 @@ function App() {
       await navigator.clipboard.writeText(currentUrl);
       setCopySuccess(true);
       
-      // 2 saniye sonra success mesajını gizle
       setTimeout(() => {
         setCopySuccess(false);
       }, 2000);
     } catch (err) {
       console.error('Kopyalama başarısız:', err);
-      // Fallback method
       const textArea = document.createElement('textarea');
       textArea.value = window.location.href;
       document.body.appendChild(textArea);
@@ -1042,7 +1049,7 @@ return (
               <div className="right-panel">
                 <div className="playlist-container">
                   <div class="playlist-header">
-                  <h3>Playlist</h3><button onClick={oynatmaListesiTemizle}>Playlist Temizle</button></div>
+                  <h3>Playlist</h3><button onClick={playlistTemizle}>Playlist Temizle</button></div>
                   <div className='video-listesi'>
                     {playlist.map((url, index) => (
                       <div key={index} className="video-item">

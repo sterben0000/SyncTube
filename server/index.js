@@ -169,16 +169,6 @@ app.post('/odadan-cik',(req,res)=>{
     res.json({ message: 'Token cookie olarak set edildi' });
 })
 
-app.post('/oda-cek',(req,res)=>{
-    const rooms = Array.from(io.sockets.adapter.rooms);
-    const filtered = rooms.filter(([name, members]) => !io.sockets.sockets.get(name));
-    console.log(filtered);
-
-    
-    res.json({rooms: filtered})
-    
-
-})
 
 
 io.use((socket, next) => {
@@ -266,8 +256,9 @@ io.on("connection",(socket)=>{
     })
     socket.on("odadan_ayril",data=>{
 
-        socket.leave(data);
-        console.log(`odadan ayrildi: ${socket.id}`)
+        socket.to(data.oda).emit("odadanAyrildi",data.kullanici);
+        socket.leave(data.oda);
+        
     })
     socket.on("odaya_katildi",(data,cb)=>{
         
@@ -401,7 +392,9 @@ io.on("connection",(socket)=>{
             socket.yetkiPlaylist=false;
         }
         socket.token=data;
-        console.log(socket.token);
+        
+        
+        
     })
 
 
