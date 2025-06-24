@@ -52,8 +52,9 @@ function App() {
   const [davetPenceresiVisible, setDavetPenceresiVisible] = useState(false);
   const [copySuccess, setCopySuccess] = useState(false);
   const [mesajlar, setMesajlar] = useState([]);
+  const [loopAktif, setLoopAktif] = useState(false);
 
-
+  const loopAktifRef=useRef(loopAktif);
   const videoOynuyormuRef=useRef(videoOynuyormu);
   const mesajListesiRef = useRef(null);
   const fullScreenContainerRef = useRef(null);
@@ -163,6 +164,11 @@ function App() {
     videoOynuyormuRef.current=videoOynuyormu;
   },[videoOynuyormu])
 
+
+  useEffect(()=>{
+    loopAktifRef.current=loopAktif;
+  },[loopAktif])
+
   //Oluşturduğumuz player'ın ilerleme çubuğunun ilerlemesini sağlayan fonksiyon
   const ilerlemeCubugu = () => {
     
@@ -239,6 +245,7 @@ function App() {
     playlistRef.current = playlist;
     kapakFotografiRef.current=kapakFotografi;
     titleRef.current=title;
+    loopAktifRef.current=loopAktif;
 
 
 
@@ -283,12 +290,26 @@ function App() {
                 }
                 if(event.data === window.YT.PlayerState.ENDED){//Video bittiği zaman bir sonraki videoya geçiyor
                     
-                    setVideoSirasi((onceki) => { 
-                      const yeniVideoSirasi = onceki + 1;
+                    if((videoSirasiRef.current===playlistRef.current.length-1) && loopAktifRef.current){
+                      
+                      setVideoSirasi((onceki) => { 
+                      const yeniVideoSirasi = 0;
                       if(playlistRef.current[yeniVideoSirasi]){
                       videoyuAc(playlistRef.current[yeniVideoSirasi]);} 
                       return yeniVideoSirasi; 
-                    });  
+                    }); 
+                    }
+                    else{
+                      
+                      setVideoSirasi((onceki) => { 
+                        const yeniVideoSirasi = onceki + 1;
+                        if(playlistRef.current[yeniVideoSirasi]){
+                        videoyuAc(playlistRef.current[yeniVideoSirasi]);} 
+                        return yeniVideoSirasi; 
+                      });  
+                    }
+
+
                 }
                 if(event.data === window.YT.PlayerState.PAUSED){ //Kullanıcı videoyu bizim yaptığımız player'ı kullanmadan durdurmaya çalışırsa engelleniyor
                   if(videoOynuyormuRef.current===true){
@@ -313,7 +334,7 @@ function App() {
     };
 
   
-  }, [location,playlist,videoSirasi,title,kapakFotografi,kullaniciAdiYok]);
+  }, [location,playlist,videoSirasi,title,kapakFotografi,kullaniciAdiYok,loopAktif]);
 
   useEffect( () => {
     console.log(socket);
@@ -342,6 +363,7 @@ function App() {
           setPlaylist(data.playlist);
           setTitle(data.basliklar);
           setKapakFotografi(data.kapaklar);
+          setLoopAktif(data.loop);
           
           if (playerInstance.current && data.videoID) { //Odada herhangi bir video oynuyorsa video başlatılıyor
             console.log(videoIdRef.current);
@@ -403,6 +425,7 @@ function App() {
           kapaklar: kapakFotografiRef.current,
           saniye: playerInstance.current.getCurrentTime(),
           videoID: videoIdRef.current,
+          loop: loopAktifRef.current,
         });
       });
       
@@ -436,6 +459,14 @@ function App() {
       })
       socket.on("video_hiziDegistir",(data)=>{
         videoHizi(data.hiz);
+      })
+
+      socket.on("acLoop",()=>{
+        setLoopAktif(true);
+      });
+
+      socket.on("kapaLoop",()=>{
+        setLoopAktif(false);
       })
       
       socket.on("mesaj_al",data=>{
@@ -926,6 +957,18 @@ function App() {
       }, 2000);
     }
   };
+  
+
+  const döngü = ()=>{
+    setLoopAktif(!loopAktif);
+    if(!loopAktifRef.current){
+      socket.emit("loopAc",getCookie("oda"));
+      console.log("accc");
+    }else{
+      console.log("Kapaaa");
+      socket.emit("loopKapa",getCookie("oda"));
+    }
+  }
 
 
 
@@ -1039,6 +1082,9 @@ return (
                       tamEkranYap={tamEkranYap}
                       sesAyarla={sesAyarla}
                       volume={volume}
+                      döngü={döngü}
+                      loopAktif={loopAktif}
+                      setLoopAktif={setLoopAktif}
                     />
                   </div>
                   <div ref={playerRef} className="video-player"></div>
@@ -1049,6 +1095,7 @@ return (
               <div className="right-panel">
                 <div className="playlist-container">
                   <div class="playlist-header">
+                  
                   <h3>Playlist</h3><button onClick={playlistTemizle}>Playlist Temizle</button></div>
                   <div className='video-listesi'>
                     {playlist.map((url, index) => (

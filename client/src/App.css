@@ -115,13 +115,15 @@ body {
   background: linear-gradient(45deg, #d32f2f, #f44336);
   color: white;
   border: none;
-  padding: 8px 16px;
+  padding: 8px 8px;
   border-radius: 8px;
   cursor: pointer;
   font-size: 12px;
   font-weight: 600;
   transition: all 0.3s ease;
 }
+
+
 
 .playlist-container button:hover {
   transform: translateY(-2px);
@@ -770,6 +772,7 @@ input:checked + .slider:before {
   height: 32px;
 }
 
+
 .playback-speed {
   display: flex !important;
   align-items: center !important;
@@ -791,6 +794,34 @@ input:checked + .slider:before {
 
 .playback-content:hover .speed-options {
   display: block;
+}
+
+.donguButon {
+  background: transparent !important;
+  border: none !important;
+  color: white !important;
+  font-size: 16px !important;
+  cursor: pointer !important;
+  padding: 5px 8px !important;
+  transition: color 0.3s !important;
+  height: 32px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  min-width: 32px !important;
+}
+
+.donguButon:hover {
+  color: #1565c0 !important;
+  background-color: transparent !important;
+}
+
+.donguButon i {
+  font-size: 23px !important;
+  line-height: 1 !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
 }
 
 .speed-options li {

@@ -317,6 +317,13 @@ io.on("connection",(socket)=>{
         socket.to(data.oda).emit("video_hiziDegistir",data);
     })
 
+    socket.on("loopAc",data=>{
+        socket.to(data).emit("acLoop");
+    })
+    socket.on("loopKapa",data=>{
+        socket.to(data).emit("kapaLoop");
+    })
+
     socket.on("mesaj_gonder",(data)=>{
         console.log(data);
         socket.to(data.oda).emit("mesaj_al",{x: data.x,kullanici: data.kullanici});

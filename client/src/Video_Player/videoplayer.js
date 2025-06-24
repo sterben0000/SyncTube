@@ -19,7 +19,10 @@ const VideoControls = ({
     oda,
     tamEkranYap,
     sesAyarla,
-    volume
+    volume,
+    döngü,
+    loopAktif,
+    setLoopAktif
 }) => {
     const [isMuted, setIsMuted] = useState(false);
 
@@ -85,6 +88,7 @@ const VideoControls = ({
         socket.emit("videoHizi_degistir", {hiz, oda});
         videoHizi(hiz);
     }
+    
 
     return (
         <>
@@ -127,6 +131,7 @@ const VideoControls = ({
                         <p className="separator">/</p>
                         <p className="video-duration">{videoSuresi}</p>
                     </div>
+                    <button className="donguButon" onClick={döngü}>{loopAktif ? <i class="material-icons">loop</i>:<i class="material-icons">sync_disabled</i>}</button>
                     <div className="playback-content">
                         <button className="playback-speed">
                             <span className="material-symbols-rounded">slow_motion_video</span>
